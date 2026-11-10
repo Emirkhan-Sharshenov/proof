@@ -11,7 +11,7 @@ Folioseen: SaaS for freelancers — per-client tracked links to portfolio/propos
 ## Stack
 Vite multi-page build: `index.html` (landing, plain HTML + `public/waitlist.js`) and `app/index.html` (React 19 + HeroUI v3 + Tailwind v4, react-router). Supabase (auth, Postgres + RLS) called directly from the browser with the publishable key (`src/lib/supabase.ts`). Cloudflare Worker `app` (`wrangler.jsonc`): static assets from `dist/` with SPA rewrites in `public/_redirects`; `worker/index.ts` runs only for `/api/*` (Telegram webhook, visit alerts) and uses secrets `TELEGRAM_BOT_TOKEN`, `SUPABASE_SECRET_KEY` set in the Cloudflare dashboard.
 
-Routes: `/` landing · `/app` dashboard (links) · `/app/case-studies` · `/app/links/:id` · `/app/settings` (Telegram) · `/v/:slug` public client page (tracked) · `/api/telegram` (bot webhook) · `/api/visit-alert` · `/api/telegram/setup` (registers the webhook; open once after deploy).
+Routes: `/` landing · `/app` dashboard (links) · `/app/case-studies` · `/app/links/:id` · `/app/settings` (Telegram) · `/v/:slug` public client page (tracked) · `/api/telegram` (bot webhook) · `/api/visit-alert` · `/api/telegram/setup` (registers the webhook; open once after deploy or address change) · `/api/status` (diagnostics: webhook errors, Supabase key check; no secrets shown).
 
 Local `wrangler dev`: kill old `wrangler`/`workerd` processes first, and use a copy of the config without `build` (otherwise it rebuilds `dist/` in a loop and serves 404s).
 
