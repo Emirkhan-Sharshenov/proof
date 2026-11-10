@@ -111,8 +111,23 @@ async function handleSetup(env: Env, origin: string): Promise<Response> {
   return json(result, result.ok ? 200 : 500);
 }
 
+function cleanSecret(value?: string): string | undefined {
+  return value?.replace(/[\s​-‍﻿]+/g, "") || undefined;
+}
+
+// Shape of the Supabase key without revealing it.
+function describeKey(raw?: string) {
+  const cleaned = cleanSecret(raw) ?? "";
+  return {
+    prefix_ok: cleaned.startsWith("sb_secret_"),
+    length: cleaned.length,
+    had_whitespace: (raw ?? "").length !== cleaned.length,
+    has_non_ascii: /[^\x21-\x7E]/.test(cleaned),
+  };
+}
+
 // Diagnostics without secrets: is the webhook healthy, and does the Supabase key work?
-async function handleStatus(env: Env, origin: string): Promise<Response> {
+async function handleStatus(env: Env, rawKey: string | undefined, origin: string): Promise<Response> {
   const info = (await (await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getWebhookInfo`)).json()) as {
     ok: boolean;
     result?: { url: string; pending_update_count: number; last_error_date?: number; last_error_message?: string };
@@ -133,13 +148,21 @@ async function handleStatus(env: Env, origin: string): Promise<Response> {
     last_error_at: info.result?.last_error_date ? new Date(info.result.last_error_date * 1000).toISOString() : null,
     telegram_error: info.ok ? null : info.description,
     supabase,
+    supabase_key: describeKey(rawKey),
   });
 }
 
 export default {
-  async fetch(request: Request, env: Env, ctx: Ctx): Promise<Response> {
+  async fetch(request: Request, rawEnv: Env, ctx: Ctx): Promise<Response> {
     const url = new URL(request.url);
-    if (!url.pathname.startsWith("/api/")) return env.ASSETS.fetch(request);
+    if (!url.pathname.startsWith("/api/")) return rawEnv.ASSETS.fetch(request);
+
+    // Secrets pasted into the dashboard often carry stray spaces, newlines or invisible characters.
+    const env: Env = {
+      ...rawEnv,
+      TELEGRAM_BOT_TOKEN: cleanSecret(rawEnv.TELEGRAM_BOT_TOKEN),
+      SUPABASE_SECRET_KEY: cleanSecret(rawEnv.SUPABASE_SECRET_KEY),
+    };
 
     if (!env.TELEGRAM_BOT_TOKEN || !env.SUPABASE_SECRET_KEY) {
       return json({ ok: false, error: "TELEGRAM_BOT_TOKEN or SUPABASE_SECRET_KEY is not set" }, 503);
@@ -149,7 +172,7 @@ export default {
       if (url.pathname === "/api/visit-alert" && request.method === "POST")
         return await handleVisitAlert(request, env, ctx, url.origin);
       if (url.pathname === "/api/telegram/setup" && request.method === "GET") return await handleSetup(env, url.origin);
-      if (url.pathname === "/api/status" && request.method === "GET") return await handleStatus(env, url.origin);
+      if (url.pathname === "/api/status" && request.method === "GET") return await handleStatus(env, rawEnv.SUPABASE_SECRET_KEY, url.origin);
     } catch (err) {
       console.error(err);
       return json({ ok: false }, 500);
