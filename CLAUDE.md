@@ -23,7 +23,7 @@ Local `wrangler dev`: kill old `wrangler`/`workerd` processes first, and use a c
 
 ## Next tasks
 1. Telegram: open alert + reading summary (cron every 5 min, `supabase/summary.sql`, visit is finished after 10 min idle) — done. Next: optional per-user alert settings.
-2. Supabase default SMTP only mails project members: confirm-email is off for now; set up free SMTP (e.g. Brevo) or GitHub OAuth before public signups.
+2. Auth: Google/GitHub buttons appear automatically when the provider is enabled in Supabase (read from /auth/v1/settings). Email confirm is ON but Supabase default SMTP only mails project members → email signups only work for Emir until custom SMTP; real email (confirm, password reset) needs a domain (folioseen.com) + Resend/Brevo.
 3. Images in case studies (Supabase Storage), client-verified testimonials, export.
 4. Buy folioseen.com (Cloudflare Registrar, ~$11/yr) when budget allows.
 

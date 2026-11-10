@@ -1,10 +1,31 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Navigate } from "react-router";
-import { Button, Card, Input, Label, TextField } from "@heroui/react";
+import { Button, Card, Input, Label, Separator, TextField } from "@heroui/react";
 import { useAuth } from "../lib/auth";
-import { supabase } from "../lib/supabase";
+import { supabase, SUPABASE_KEY, SUPABASE_URL } from "../lib/supabase";
+
+type Provider = "github" | "google";
+const PROVIDERS: { id: Provider; label: string }[] = [
+  { id: "google", label: "Continue with Google" },
+  { id: "github", label: "Continue with GitHub" },
+];
+
+// Only show buttons for providers that are switched on in Supabase.
+function useEnabledProviders(): Provider[] {
+  const [enabled, setEnabled] = useState<Provider[]>([]);
+  useEffect(() => {
+    fetch(`${SUPABASE_URL}/auth/v1/settings`, { headers: { apikey: SUPABASE_KEY } })
+      .then((r) => r.json())
+      .then((s: { external?: Record<string, boolean> }) =>
+        setEnabled(PROVIDERS.map((p) => p.id).filter((id) => s.external?.[id])),
+      )
+      .catch(() => {});
+  }, []);
+  return enabled;
+}
 
 export default function Login() {
+  const providers = useEnabledProviders();
   const { session } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -28,6 +49,15 @@ export default function Login() {
     if (mode === "signup" && !data.session) setInfo("Check your inbox to confirm your email, then sign in.");
   }
 
+  async function oauth(provider: Provider) {
+    setError("");
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/app` },
+    });
+    if (error) setError(error.message);
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-sm">
@@ -37,6 +67,22 @@ export default function Login() {
           <Card.Description>Know who read your portfolio.</Card.Description>
         </Card.Header>
         <Card.Content>
+          {providers.length > 0 ? (
+            <>
+              <div className="flex flex-col gap-2">
+                {PROVIDERS.filter((p) => providers.includes(p.id)).map((p) => (
+                  <Button key={p.id} variant="secondary" fullWidth onPress={() => oauth(p.id)}>
+                    {p.label}
+                  </Button>
+                ))}
+              </div>
+              <div className="my-4 flex items-center gap-3 text-xs text-muted">
+                <Separator className="flex-1" />
+                or with email
+                <Separator className="flex-1" />
+              </div>
+            </>
+          ) : null}
           <form className="flex flex-col gap-4" onSubmit={submit}>
             <TextField isRequired name="email" type="email" value={email} onChange={setEmail}>
               <Label>Email</Label>
