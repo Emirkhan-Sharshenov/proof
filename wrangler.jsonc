@@ -1,8 +1,16 @@
-// Cloudflare Workers static assets. `wrangler deploy` runs the build itself,
+// Cloudflare Worker + static assets. `wrangler deploy` runs the build itself,
 // so no build command is needed in the Cloudflare dashboard.
+// The Worker (worker/index.ts) only runs for /api/*; everything else is served straight from dist/.
+// Secrets TELEGRAM_BOT_TOKEN and SUPABASE_SECRET_KEY are set in the Cloudflare dashboard, not here.
 {
   "name": "proof",
+  "main": "worker/index.ts",
   "compatibility_date": "2026-11-01",
   "build": { "command": "npm run build" },
-  "assets": { "directory": "./dist" }
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+  "keep_vars": true
 }

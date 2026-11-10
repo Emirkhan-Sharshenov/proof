@@ -11,6 +11,7 @@ import LinkDetail from "./pages/LinkDetail";
 import CaseStudies from "./pages/CaseStudies";
 import CaseStudyEdit from "./pages/CaseStudyEdit";
 import Viewer from "./pages/Viewer";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 createRoot(document.getElementById("root")!).render(
@@ -27,6 +28,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="case-studies" element={<CaseStudies />} />
             <Route path="case-studies/new" element={<CaseStudyEdit />} />
             <Route path="case-studies/:id" element={<CaseStudyEdit />} />
+            <Route path="settings" element={<Settings />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

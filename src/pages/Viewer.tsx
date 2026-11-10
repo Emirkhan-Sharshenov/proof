@@ -57,7 +57,16 @@ export default function Viewer() {
         p_user_agent: navigator.userAgent,
         p_referrer: document.referrer || null,
       });
-      if (!cancelled) visitRef.current = (visit as string | null) ?? null;
+      if (cancelled) return;
+      visitRef.current = (visit as string | null) ?? null;
+      // Ask the server to send the owner's Telegram alert (it fires once per visit; failures are ignored).
+      if (visitRef.current) {
+        fetch("/api/visit-alert", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ visit_id: visitRef.current }),
+        }).catch(() => {});
+      }
     })();
     return () => {
       cancelled = true;

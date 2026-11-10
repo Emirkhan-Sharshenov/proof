@@ -33,6 +33,9 @@ export default function Layout() {
             <NavLink to="/app/case-studies" className={navClass}>
               Case studies
             </NavLink>
+            <NavLink to="/app/settings" className={navClass}>
+              Settings
+            </NavLink>
           </nav>
           <div className="ml-auto flex items-center gap-3">
             <span className="hidden text-sm text-muted sm:inline">{session.user.email}</span>
