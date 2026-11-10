@@ -116,6 +116,17 @@ export default function Login() {
             {mode === "signin" ? "No account? Create one" : "Have an account? Sign in"}
           </Button>
         </Card.Footer>
+        <p className="px-4 pb-4 text-center text-xs text-muted">
+          By continuing you agree to the{" "}
+          <a className="underline" href="/terms">
+            Terms
+          </a>{" "}
+          and{" "}
+          <a className="underline" href="/privacy">
+            Privacy Policy
+          </a>
+          .
+        </p>
       </Card>
     </div>
   );

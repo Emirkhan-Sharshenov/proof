@@ -175,6 +175,10 @@ export default function Viewer() {
         <a href="/" className="hover:underline">
           Made with Folioseen
         </a>
+        {" · "}
+        <a href="/privacy" className="hover:underline">
+          Privacy
+        </a>
       </footer>
     </div>
   );
