@@ -62,10 +62,16 @@ async function handleWebhook(request: Request, env: Env): Promise<Response> {
   let reply =
     "Hi! This bot sends Folioseen alerts when a client opens your link.\n\nTo connect: open Folioseen → Settings → Connect Telegram.";
   if (code) {
-    const linked = await rpc<boolean>(env, "link_telegram", { p_code: code, p_chat_id: chatId });
-    reply = linked
-      ? "✅ Connected. You'll get a message here when a client opens one of your links."
-      : "This connect link has expired. Open Folioseen → Settings → Connect Telegram again.";
+    try {
+      const linked = await rpc<boolean>(env, "link_telegram", { p_code: code, p_chat_id: chatId });
+      reply = linked
+        ? "✅ Connected. You'll get a message here when a client opens one of your links."
+        : "This connect link has expired. Open Folioseen → Settings → Connect Telegram again.";
+    } catch (err) {
+      // Answer anyway and return 200, so Telegram doesn't retry the same update forever.
+      console.error(err);
+      reply = "Sorry, something went wrong on our side. Please try Connect Telegram again in a few minutes.";
+    }
   }
   await telegram(env, "sendMessage", { chat_id: chatId, text: reply });
   return json({ ok: true });
