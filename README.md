@@ -33,7 +33,7 @@ Landing: http://localhost:5173 · App: http://localhost:5173/app
 
 ## Deploy (free, commercial use allowed)
 
-Cloudflare Workers & Pages, connected to this repo. Build command: `npm run build`; `wrangler.jsonc` points the assets to `dist/`. Every push to `main` redeploys.
+Cloudflare Workers & Pages, connected to this repo. `wrangler deploy` runs `npm run build` itself (see `wrangler.jsonc`) and uploads `dist/`. Every push to `main` redeploys.
 
 (Vercel's free Hobby plan does not allow commercial projects, so it's not used here.)
 

@@ -1,6 +1,8 @@
-// Cloudflare Workers static assets. Build command in the dashboard: npm run build
+// Cloudflare Workers static assets. `wrangler deploy` runs the build itself,
+// so no build command is needed in the Cloudflare dashboard.
 {
   "name": "proof",
   "compatibility_date": "2026-11-01",
+  "build": { "command": "npm run build" },
   "assets": { "directory": "./dist" }
 }

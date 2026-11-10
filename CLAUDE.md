@@ -16,7 +16,7 @@ Routes: `/` landing · `/app` dashboard (links) · `/app/case-studies` · `/app/
 ## Current state
 - Landing + waitlist live, saving to Supabase (project `gexatrweunrrnwnhmarf`). `supabase/schema.sql` applied.
 - MVP v1 in `src/`: email+password auth, case studies CRUD (with NDA flag), per-client links, public viewer with per-case-study reading time. DB: `supabase/app.sql` (tables + RLS + security-definer RPCs `get_shared_link`, `start_visit`, `track_view`; anon has no direct table access).
-- Live: https://proof.sgoo0931.workers.dev/ (auto-deploys on push to `main`; build command must be `npm run build`). Planned free address: folioseen.pages.dev.
+- Live: https://proof.sgoo0931.workers.dev/ (auto-deploys on push to `main`; `wrangler.jsonc` runs `npm run build` itself). Planned free address: folioseen.pages.dev.
 
 ## Next tasks
 1. Alerts when a link is opened (Telegram bot, free).
