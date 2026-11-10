@@ -1,7 +1,7 @@
-# CLAUDE.md — Proof
+# CLAUDE.md — Folioseen
 
 ## Project
-Proof: SaaS for freelancers — per-client tracked links to portfolio/proposal pages, case-study-level view analytics, client-verified testimonials, private NDA case studies, full export. Global, self-serve (no sales calls, no bank integrations). Owner: Emir. Context and decisions: `docs/strategy.md`.
+Folioseen: SaaS for freelancers — per-client tracked links to portfolio/proposal pages, case-study-level view analytics, client-verified testimonials, private NDA case studies, full export. Global, self-serve (no sales calls, no bank integrations). Owner: Emir. Context and decisions: `docs/strategy.md`.
 
 ## Constraints
 - Zero budget: only free tiers that allow commercial use (Cloudflare Pages/Workers, Supabase free). No Vercel Hobby. No paid AI at runtime.
@@ -11,10 +11,10 @@ Proof: SaaS for freelancers — per-client tracked links to portfolio/proposal p
 ## Current state
 - `index.html` + `waitlist.js`: static landing page with waitlist, saving to Supabase (project `gexatrweunrrnwnhmarf`, publishable key in `waitlist.js`).
 - `supabase/schema.sql`: waitlist table, insert-only RLS for anon (applied).
-- Live: https://proof.sgoo0931.workers.dev/ (Cloudflare, auto-deploys on push to `main`).
+- Live: https://proof.sgoo0931.workers.dev/ (Cloudflare, auto-deploys on push to `main`). Planned free address: folioseen.pages.dev.
 
 ## Next tasks
-1. Choose final name/domain.
+1. Name chosen: Folioseen. Buy folioseen.com (Cloudflare Registrar, ~$11/yr) when budget allows; until then use folioseen.pages.dev.
 2. MVP: auth, case studies, per-client links, view tracking, alerts.
 
 ## Conventions

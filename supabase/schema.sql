@@ -1,4 +1,4 @@
--- Waitlist table for the Proof landing page.
+-- Waitlist table for the Folioseen landing page.
 -- Run in Supabase: SQL Editor → New query → paste → Run.
 
 create table if not exists public.waitlist (

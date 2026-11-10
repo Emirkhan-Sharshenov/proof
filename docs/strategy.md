@@ -1,6 +1,6 @@
-# Proof — strategy notes (November 2026)
+# Folioseen — strategy notes (November 2026)
 
-Summary of the market research done before building. Numbers are from the linked sources; prices for Proof are hypotheses to test.
+Summary of the market research done before building. Numbers are from the linked sources; prices for Folioseen are hypotheses to test.
 
 ## Why this product
 
@@ -23,7 +23,7 @@ Portfolio-native tracked links (case-study level, not PDF) + verified results + 
 
 | Plan | Price | Includes |
 | --- | --- | --- |
-| Free | $0 | 5 case studies, 3 links, opens + view time, GitHub/domain verification, "Made with Proof" badge |
+| Free | $0 | 5 case studies, 3 links, opens + view time, GitHub/domain verification, "Made with Folioseen" badge |
 | Pro | $7/mo or $49/yr | Unlimited links, case-study analytics, alerts, client-verified testimonials, NDA case studies, custom domain |
 
 Payments: Lemon Squeezy or Paddle (merchant of record, no monthly fee, supports sellers in KG/KZ).
@@ -36,7 +36,7 @@ Payments: Lemon Squeezy or Paddle (merchant of record, no monthly fee, supports 
 
 ## Plan
 
-1. **Week 1:** deploy landing on Cloudflare Pages, connect waitlist to Supabase, pick a final name + domain ("Proof" is used by other companies — check).
+1. **Week 1:** deploy landing on Cloudflare Pages, connect waitlist to Supabase, pick a final name + domain (done: renamed from "Proof" to Folioseen; folioseen.com was free on 2026-11-10, buy when budget allows).
 2. **Weeks 1–4:** traffic — Reddit (r/freelance, r/forhire, r/web_design), Indie Hackers, Product Hunt "coming soon", own YouTube channels. Goal: 300+ sign-ups.
 3. **Weeks 2–5:** MVP — auth, case-study pages, per-client links, view tracking per case study, email/Telegram alerts.
 4. **Week 6:** payments (Lemon Squeezy/Paddle), early-access offer to the waitlist.

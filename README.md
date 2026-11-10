@@ -1,4 +1,4 @@
-# Proof
+# Folioseen
 
 **Know who read your portfolio.** Tracked, per-client links to portfolios and proposals for freelancers: see which case studies a client opened and for how long, and show results they can verify (client-confirmed testimonials, GitHub and domain checks).
 
