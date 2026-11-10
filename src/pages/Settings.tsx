@@ -7,6 +7,49 @@ import { useAuth } from "../lib/auth";
 // Telegram bot username without "@" (from @BotFather).
 export const TELEGRAM_BOT = "FolioseenBot";
 
+function ExportCard() {
+  const [progress, setProgress] = useState("");
+  const [error, setError] = useState("");
+
+  async function run() {
+    setError("");
+    setProgress("Starting…");
+    try {
+      const { buildExport, downloadBlob } = await import("../lib/export");
+      const blob = await buildExport(setProgress);
+      downloadBlob(blob, `folioseen-export-${new Date().toISOString().slice(0, 10)}.zip`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Export failed.");
+    }
+    setProgress("");
+  }
+
+  return (
+    <Card className="mt-6 max-w-2xl">
+      <Card.Header>
+        <Card.Title>Export your data</Card.Title>
+        <Card.Description>
+          Download everything — case studies as Markdown with their images, testimonials, links and every visit as CSV,
+          plus a full JSON file. Your work stays yours, whatever happens to Folioseen.
+        </Card.Description>
+      </Card.Header>
+      <Card.Content>
+        {progress ? (
+          <p className="flex items-center gap-2 text-sm text-muted">
+            <Spinner size="sm" /> {progress}
+          </p>
+        ) : null}
+        {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
+      </Card.Content>
+      <Card.Footer>
+        <Button variant="secondary" isPending={Boolean(progress)} onPress={run}>
+          Download .zip
+        </Button>
+      </Card.Footer>
+    </Card>
+  );
+}
+
 export default function Settings() {
   const { session } = useAuth();
   const [connected, setConnected] = useState<boolean | null>(null);
@@ -107,6 +150,7 @@ export default function Settings() {
           )}
         </Card.Footer>
       </Card>
+      <ExportCard />
     </>
   );
 }
