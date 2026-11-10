@@ -5,7 +5,7 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 
 // Telegram bot username without "@" (from @BotFather).
-export const TELEGRAM_BOT = "";
+export const TELEGRAM_BOT = "FolioseenBot";
 
 export default function Settings() {
   const { session } = useAuth();
