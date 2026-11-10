@@ -1,7 +1,7 @@
 // Waitlist form. Saves emails to Supabase when SUPABASE_URL and SUPABASE_ANON_KEY are set.
 // The anon key is safe to expose ONLY with the insert-only RLS policy from supabase/schema.sql.
-const SUPABASE_URL = ""; // e.g. https://xxxx.supabase.co
-const SUPABASE_ANON_KEY = ""; // Project Settings → API → anon public key
+const SUPABASE_URL = "https://gexatrweunrrnwnhmarf.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_C95Oh2V_ZV2V9GVl0UH8gA_hwr1Uq1i"; // publishable (public) key
 
 const form = document.getElementById("waitlist");
 const input = document.getElementById("email");
