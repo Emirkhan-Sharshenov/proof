@@ -105,6 +105,31 @@ async function handleSetup(env: Env, origin: string): Promise<Response> {
   return json(result, result.ok ? 200 : 500);
 }
 
+// Diagnostics without secrets: is the webhook healthy, and does the Supabase key work?
+async function handleStatus(env: Env, origin: string): Promise<Response> {
+  const info = (await (await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getWebhookInfo`)).json()) as {
+    ok: boolean;
+    result?: { url: string; pending_update_count: number; last_error_date?: number; last_error_message?: string };
+    description?: string;
+  };
+  let supabase = "ok";
+  try {
+    await rpc(env, "claim_visit_alert", { p_visit_id: "00000000-0000-0000-0000-000000000000" });
+  } catch (err) {
+    supabase = String(err).replace(/sb_secret_\w+/g, "sb_secret_***").slice(0, 300);
+  }
+  return json({
+    telegram_token_ok: info.ok,
+    webhook_url_matches: info.result?.url === `${origin}/api/telegram`,
+    webhook_url: info.result?.url,
+    pending_updates: info.result?.pending_update_count,
+    last_error: info.result?.last_error_message ?? null,
+    last_error_at: info.result?.last_error_date ? new Date(info.result.last_error_date * 1000).toISOString() : null,
+    telegram_error: info.ok ? null : info.description,
+    supabase,
+  });
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: Ctx): Promise<Response> {
     const url = new URL(request.url);
@@ -118,6 +143,7 @@ export default {
       if (url.pathname === "/api/visit-alert" && request.method === "POST")
         return await handleVisitAlert(request, env, ctx, url.origin);
       if (url.pathname === "/api/telegram/setup" && request.method === "GET") return await handleSetup(env, url.origin);
+      if (url.pathname === "/api/status" && request.method === "GET") return await handleStatus(env, url.origin);
     } catch (err) {
       console.error(err);
       return json({ ok: false }, 500);
