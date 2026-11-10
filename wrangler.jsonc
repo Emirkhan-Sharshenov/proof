@@ -3,7 +3,7 @@
 // The Worker (worker/index.ts) only runs for /api/*; everything else is served straight from dist/.
 // Secrets TELEGRAM_BOT_TOKEN and SUPABASE_SECRET_KEY are set in the Cloudflare dashboard, not here.
 {
-  "name": "proof",
+  "name": "app",
   "main": "worker/index.ts",
   "compatibility_date": "2026-11-01",
   "build": { "command": "npm run build" },

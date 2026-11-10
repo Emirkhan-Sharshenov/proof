@@ -9,7 +9,7 @@ Folioseen: SaaS for freelancers — per-client tracked links to portfolio/propos
 - No invented stats or testimonials on the site; example data must be labelled "example".
 
 ## Stack
-Vite multi-page build: `index.html` (landing, plain HTML + `public/waitlist.js`) and `app/index.html` (React 19 + HeroUI v3 + Tailwind v4, react-router). Supabase (auth, Postgres + RLS) called directly from the browser with the publishable key (`src/lib/supabase.ts`). Cloudflare Worker `proof` (`wrangler.jsonc`): static assets from `dist/` with SPA rewrites in `public/_redirects`; `worker/index.ts` runs only for `/api/*` (Telegram webhook, visit alerts) and uses secrets `TELEGRAM_BOT_TOKEN`, `SUPABASE_SECRET_KEY` set in the Cloudflare dashboard.
+Vite multi-page build: `index.html` (landing, plain HTML + `public/waitlist.js`) and `app/index.html` (React 19 + HeroUI v3 + Tailwind v4, react-router). Supabase (auth, Postgres + RLS) called directly from the browser with the publishable key (`src/lib/supabase.ts`). Cloudflare Worker `app` (`wrangler.jsonc`): static assets from `dist/` with SPA rewrites in `public/_redirects`; `worker/index.ts` runs only for `/api/*` (Telegram webhook, visit alerts) and uses secrets `TELEGRAM_BOT_TOKEN`, `SUPABASE_SECRET_KEY` set in the Cloudflare dashboard.
 
 Routes: `/` landing · `/app` dashboard (links) · `/app/case-studies` · `/app/links/:id` · `/app/settings` (Telegram) · `/v/:slug` public client page (tracked) · `/api/telegram` (bot webhook) · `/api/visit-alert` · `/api/telegram/setup` (registers the webhook; open once after deploy).
 
@@ -19,7 +19,7 @@ Local `wrangler dev`: kill old `wrangler`/`workerd` processes first, and use a c
 - Landing + waitlist live, saving to Supabase (project `gexatrweunrrnwnhmarf`). `supabase/schema.sql` applied.
 - MVP v1 in `src/`: email+password auth, case studies CRUD (with NDA flag), per-client links, public viewer with per-case-study reading time. DB: `supabase/app.sql` (tables + RLS + security-definer RPCs `get_shared_link`, `start_visit`, `track_view`; anon has no direct table access).
 - Telegram alerts: `supabase/telegram.sql` (profiles with chat id, one-time connect codes, `claim_visit_alert` — one alert per visit, server-only RPCs) + Worker + Settings page. Bot username goes in `TELEGRAM_BOT` in `src/pages/Settings.tsx`.
-- Live: https://proof.sgoo0931.workers.dev/ (auto-deploys on push to `main`; `wrangler.jsonc` runs `npm run build` itself). Planned free address: folioseen.pages.dev.
+- Live: https://app.folioseen.workers.dev/ (auto-deploys on push to `main`; `wrangler.jsonc` runs `npm run build` itself).
 
 ## Next tasks
 1. Telegram: reading-time summary after a visit ends (currently alerts on open only).
