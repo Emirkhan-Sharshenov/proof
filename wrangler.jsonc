@@ -1,0 +1,6 @@
+// Cloudflare Workers static assets. Build command in the dashboard: npm run build
+{
+  "name": "proof",
+  "compatibility_date": "2026-11-01",
+  "assets": { "directory": "./dist" }
+}

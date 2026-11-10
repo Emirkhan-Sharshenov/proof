@@ -2,38 +2,38 @@
 
 **Know who read your portfolio.** Tracked, per-client links to portfolios and proposals for freelancers: see which case studies a client opened and for how long, and show results they can verify (client-confirmed testimonials, GitHub and domain checks).
 
-Status: landing page + waitlist (validation stage). The product is not built yet.
+Status: landing page + waitlist live; MVP app (case studies, per-client links, view tracking) in progress.
 
 ## What's here
 
-| File | What it is |
+| Path | What it is |
 | --- | --- |
-| `index.html` | Landing page (static, no build step) |
-| `waitlist.js` | Waitlist form → Supabase |
+| `index.html`, `public/waitlist.js` | Landing page and waitlist form → Supabase |
+| `app/index.html`, `src/` | The app (React + HeroUI v3 + Tailwind v4) at `/app`, client pages at `/v/<slug>` |
 | `supabase/schema.sql` | Waitlist table with insert-only access |
+| `supabase/app.sql` | App tables, row-level security and tracking functions |
+| `wrangler.jsonc`, `public/_redirects` | Cloudflare deploy config |
 | `docs/strategy.md` | Market research summary, positioning, pricing, plan |
 | `CLAUDE.md` | Project context for continuing work with Claude Code |
 
 ## Run locally
 
-Open `index.html` in a browser, or:
-
 ```bash
-npx serve .
+npm install
+npm run dev
 ```
 
-## Connect the waitlist (free)
+Landing: http://localhost:5173 · App: http://localhost:5173/app
 
-1. Create a project at [supabase.com](https://supabase.com) (free plan allows commercial use).
-2. SQL Editor → run `supabase/schema.sql`.
-3. Project Settings → API → copy the Project URL and the `anon` public key into `waitlist.js`.
-4. Test the form, then check Table Editor → `waitlist`.
+## Supabase setup (free)
 
-Until step 3 is done the form only shows the success message and **does not save emails**.
+1. SQL Editor → run `supabase/schema.sql` and `supabase/app.sql`.
+2. Authentication → Sign In / Providers → Email: turn off **Confirm email** until custom SMTP is set up (Supabase's built-in mailer only sends to project members).
+3. The project URL and publishable key live in `src/lib/supabase.ts` and `public/waitlist.js`.
 
 ## Deploy (free, commercial use allowed)
 
-Cloudflare Pages → Create → Connect to Git → pick this repo → Framework preset: None, build command empty, output directory `/`. Every push to `main` redeploys.
+Cloudflare Workers & Pages, connected to this repo. Build command: `npm run build`; `wrangler.jsonc` points the assets to `dist/`. Every push to `main` redeploys.
 
 (Vercel's free Hobby plan does not allow commercial projects, so it's not used here.)
 
