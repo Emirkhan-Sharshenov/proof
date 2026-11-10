@@ -24,7 +24,7 @@ Local `wrangler dev`: kill old `wrangler`/`workerd` processes first, and use a c
 ## Next tasks
 1. Telegram: open alert + reading summary (cron every 5 min, `supabase/summary.sql`, visit is finished after 10 min idle) — done. Next: optional per-user alert settings.
 2. Auth: Google and GitHub sign-in live (buttons appear automatically when a provider is enabled in Supabase, read from /auth/v1/settings). Google OAuth app is published; Supabase Site URL `https://app.folioseen.workers.dev`, redirect allow-list `https://app.folioseen.workers.dev/**`, `http://localhost:5173/**`. Legal pages: `public/privacy.html`, `public/terms.html` (served at /privacy, /terms; required by Google Branding). Email confirm is ON but Supabase default SMTP only mails project members → email signups only work for Emir until custom SMTP; real email (confirm, password reset) needs a domain (folioseen.com) + Resend/Brevo.
-3. Images in case studies (Supabase Storage), client-verified testimonials, export.
+3. Images: Pro-only (free 0 / pro 20 per case study; `supabase/images.sql`, `src/lib/plan.ts`, `src/lib/images.ts`, `ImageManager.tsx`), compressed to WebP ≤1600px in the browser, public bucket `case-images` with random paths. Plan is set by hand in SQL until payments. Next: client-verified testimonials, export.
 4. Buy folioseen.com (Cloudflare Registrar, ~$11/yr) when budget allows.
 
 ## Conventions

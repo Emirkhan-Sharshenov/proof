@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router";
 import { Button, Checkbox, Description, Input, Label, Spinner, TextArea, TextField } from "@heroui/react";
 import PageHeader from "../components/PageHeader";
+import ImageManager from "../components/ImageManager";
 import { supabase } from "../lib/supabase";
 
 export default function CaseStudyEdit() {
@@ -37,12 +38,17 @@ export default function CaseStudyEdit() {
     setBusy(true);
     setError("");
     const row = { title: title.trim(), summary: summary.trim(), body, is_nda: isNda, updated_at: new Date().toISOString() };
-    const { error } = id
-      ? await supabase.from("case_studies").update(row).eq("id", id)
-      : await supabase.from("case_studies").insert(row);
+    if (id) {
+      const { error } = await supabase.from("case_studies").update(row).eq("id", id);
+      setBusy(false);
+      if (error) return setError(error.message);
+      return navigate("/app/case-studies");
+    }
+    // New case study: stay in the editor so images can be added right away.
+    const { data, error } = await supabase.from("case_studies").insert(row).select("id").single();
     setBusy(false);
     if (error) return setError(error.message);
-    navigate("/app/case-studies");
+    navigate(`/app/case-studies/${data.id}`, { replace: true });
   }
 
   async function remove() {
@@ -96,6 +102,9 @@ export default function CaseStudyEdit() {
           ) : null}
         </div>
       </form>
+      <div className="mt-10 max-w-2xl">
+        <ImageManager caseStudyId={id} />
+      </div>
     </>
   );
 }

@@ -2,12 +2,20 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router";
 import { Button, Card, Chip, Spinner } from "@heroui/react";
 import { supabase, SUPABASE_KEY, SUPABASE_URL } from "../lib/supabase";
+import { imageUrl } from "../lib/images";
 import NotFound from "./NotFound";
 
 type Shared = {
   client_name: string;
   is_owner: boolean | null;
-  case_studies: { id: string; title: string; summary: string; body: string; is_nda: boolean }[];
+  case_studies: {
+    id: string;
+    title: string;
+    summary: string;
+    body: string;
+    is_nda: boolean;
+    images?: { path: string; width: number | null; height: number | null }[];
+  }[];
 };
 
 const FLUSH_EVERY = 15; // seconds
@@ -135,6 +143,21 @@ export default function Viewer() {
             ) : null}
             <h1 className="font-display text-4xl font-bold tracking-tight">{open.title}</h1>
             {open.summary ? <p className="mt-3 text-lg text-muted">{open.summary}</p> : null}
+            {open.images?.length ? (
+              <div className="mt-8 flex flex-col gap-4">
+                {open.images.map((img, i) => (
+                  <img
+                    key={img.path}
+                    src={imageUrl(img.path)}
+                    width={img.width ?? undefined}
+                    height={img.height ?? undefined}
+                    alt={`${open.title} — image ${i + 1}`}
+                    loading={i === 0 ? "eager" : "lazy"}
+                    className="h-auto w-full rounded-2xl bg-default"
+                  />
+                ))}
+              </div>
+            ) : null}
             <div className="mt-8 whitespace-pre-wrap text-base leading-7">{open.body}</div>
           </article>
         ) : (
@@ -149,7 +172,15 @@ export default function Viewer() {
                   onClick={() => setOpenId(c.id)}
                   className="block rounded-3xl text-left focus-visible:outline-2"
                 >
-                  <Card className="transition-shadow hover:shadow-md">
+                  <Card className="overflow-hidden transition-shadow hover:shadow-md">
+                    {c.images?.[0] ? (
+                      <img
+                        src={imageUrl(c.images[0].path)}
+                        alt=""
+                        loading="lazy"
+                        className="-mx-4 -mt-4 aspect-[16/9] w-[calc(100%+2rem)] max-w-none object-cover"
+                      />
+                    ) : null}
                     <Card.Header>
                       <div className="flex items-start justify-between gap-2">
                         <Card.Title className="text-lg">{c.title}</Card.Title>
