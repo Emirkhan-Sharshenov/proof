@@ -22,7 +22,7 @@ Local `wrangler dev`: kill old `wrangler`/`workerd` processes first, and use a c
 - Live: https://app.folioseen.workers.dev/ (auto-deploys on push to `main`; `wrangler.jsonc` runs `npm run build` itself).
 
 ## Next tasks
-1. Telegram: reading-time summary after a visit ends (currently alerts on open only).
+1. Telegram: open alert + reading summary (cron every 5 min, `supabase/summary.sql`, visit is finished after 10 min idle) — done. Next: optional per-user alert settings.
 2. Supabase default SMTP only mails project members: confirm-email is off for now; set up free SMTP (e.g. Brevo) or GitHub OAuth before public signups.
 3. Images in case studies (Supabase Storage), client-verified testimonials, export.
 4. Buy folioseen.com (Cloudflare Registrar, ~$11/yr) when budget allows.

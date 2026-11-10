@@ -12,5 +12,7 @@
     "binding": "ASSETS",
     "run_worker_first": ["/api/*"]
   },
+  // Every 5 minutes: Telegram reading summaries for finished visits (also keeps Supabase free tier from pausing).
+  "triggers": { "crons": ["*/5 * * * *"] },
   "keep_vars": true
 }

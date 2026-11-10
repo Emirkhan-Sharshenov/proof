@@ -14,6 +14,8 @@ interface Ctx {
 }
 
 const SUPABASE_URL = "https://gexatrweunrrnwnhmarf.supabase.co";
+// Public address of the app, used in messages sent by the cron job (it has no request to read it from).
+const APP_ORIGIN = "https://app.folioseen.workers.dev";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -152,17 +154,50 @@ async function handleStatus(env: Env, rawKey: string | undefined, origin: string
   });
 }
 
+function formatDuration(total: number): string {
+  if (total < 60) return `${total}s`;
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return s ? `${m}m ${s}s` : `${m}m`;
+}
+
+// Cron: sends one reading summary per finished visit (see supabase/summary.sql).
+async function sendSummaries(env: Env) {
+  const rows = await rpc<
+    { chat_id: number; link_id: string; client_name: string; total_seconds: number; items: { title: string; seconds: number | null }[] }[]
+  >(env, "claim_visit_summaries", {});
+  for (const r of rows) {
+    const read = r.items.filter((i) => i.seconds !== null);
+    const unread = r.items.filter((i) => i.seconds === null);
+    const lines = read.map((i) => `• ${escapeHtml(i.title)} — ${i.seconds ? formatDuration(i.seconds) : "opened"}`);
+    if (unread.length) lines.push(`\nNot opened: ${unread.map((i) => escapeHtml(i.title)).join(", ")}`);
+    await telegram(env, "sendMessage", {
+      chat_id: r.chat_id,
+      parse_mode: "HTML",
+      text: `📖 <b>${escapeHtml(r.client_name)}</b> finished reading — ${formatDuration(r.total_seconds)} in total\n\n${lines.join("\n")}\n\n<a href="${APP_ORIGIN}/app/links/${r.link_id}">Open details</a>`,
+      link_preview_options: { is_disabled: true },
+    });
+  }
+}
+
+// Secrets pasted into the dashboard often carry stray spaces, newlines or invisible characters.
+const cleanEnv = (rawEnv: Env): Env => ({
+  ...rawEnv,
+  TELEGRAM_BOT_TOKEN: cleanSecret(rawEnv.TELEGRAM_BOT_TOKEN),
+  SUPABASE_SECRET_KEY: cleanSecret(rawEnv.SUPABASE_SECRET_KEY),
+});
+
 export default {
+  async scheduled(_controller: unknown, rawEnv: Env, ctx: Ctx): Promise<void> {
+    const env = cleanEnv(rawEnv);
+    if (!env.TELEGRAM_BOT_TOKEN || !env.SUPABASE_SECRET_KEY) return;
+    ctx.waitUntil(sendSummaries(env).catch((err) => console.error(err)));
+  },
+
   async fetch(request: Request, rawEnv: Env, ctx: Ctx): Promise<Response> {
     const url = new URL(request.url);
     if (!url.pathname.startsWith("/api/")) return rawEnv.ASSETS.fetch(request);
-
-    // Secrets pasted into the dashboard often carry stray spaces, newlines or invisible characters.
-    const env: Env = {
-      ...rawEnv,
-      TELEGRAM_BOT_TOKEN: cleanSecret(rawEnv.TELEGRAM_BOT_TOKEN),
-      SUPABASE_SECRET_KEY: cleanSecret(rawEnv.SUPABASE_SECRET_KEY),
-    };
+    const env = cleanEnv(rawEnv);
 
     if (!env.TELEGRAM_BOT_TOKEN || !env.SUPABASE_SECRET_KEY) {
       return json({ ok: false, error: "TELEGRAM_BOT_TOKEN or SUPABASE_SECRET_KEY is not set" }, 503);
