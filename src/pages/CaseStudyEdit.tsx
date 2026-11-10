@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router";
 import { Button, Checkbox, Description, Input, Label, Spinner, TextArea, TextField } from "@heroui/react";
 import PageHeader from "../components/PageHeader";
 import ImageManager from "../components/ImageManager";
+import TestimonialManager from "../components/TestimonialManager";
 import { supabase } from "../lib/supabase";
 
 export default function CaseStudyEdit() {
@@ -102,8 +103,9 @@ export default function CaseStudyEdit() {
           ) : null}
         </div>
       </form>
-      <div className="mt-10 max-w-2xl">
+      <div className="mt-10 flex max-w-2xl flex-col gap-6">
         <ImageManager caseStudyId={id} />
+        <TestimonialManager caseStudyId={id} />
       </div>
     </>
   );

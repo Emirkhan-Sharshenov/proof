@@ -15,6 +15,7 @@ type Shared = {
     body: string;
     is_nda: boolean;
     images?: { path: string; width: number | null; height: number | null }[];
+    testimonials?: { author_name: string; author_role: string | null; body: string; submitted_at: string }[];
   }[];
 };
 
@@ -159,6 +160,23 @@ export default function Viewer() {
               </div>
             ) : null}
             <div className="mt-8 whitespace-pre-wrap text-base leading-7">{open.body}</div>
+            {open.testimonials?.length ? (
+              <section aria-label="Client testimonials" className="mt-10 flex flex-col gap-4">
+                {open.testimonials.map((t) => (
+                  <figure key={t.submitted_at} className="m-0 rounded-2xl border border-border bg-surface p-5">
+                    <blockquote className="m-0 whitespace-pre-wrap text-base leading-7">“{t.body}”</blockquote>
+                    <figcaption className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                      <span className="font-medium">{t.author_name}</span>
+                      {t.author_role ? <span className="text-muted">· {t.author_role}</span> : null}
+                      <span className="flex w-full items-center gap-1 text-xs text-success">
+                        ✓ Submitted directly by the client ·{" "}
+                        {new Date(t.submitted_at).toLocaleDateString(undefined, { month: "short", year: "numeric" })}
+                      </span>
+                    </figcaption>
+                  </figure>
+                ))}
+              </section>
+            ) : null}
           </article>
         ) : (
           <>
@@ -192,8 +210,13 @@ export default function Viewer() {
                       </div>
                       {c.summary ? <Card.Description>{c.summary}</Card.Description> : null}
                     </Card.Header>
-                    <Card.Footer>
+                    <Card.Footer className="flex flex-wrap items-center gap-3">
                       <span className="text-sm font-medium text-accent">Read case study →</span>
+                      {c.testimonials?.length ? (
+                        <span className="text-xs text-success">
+                          ✓ {c.testimonials.length === 1 ? "Client testimonial" : `${c.testimonials.length} client testimonials`}
+                        </span>
+                      ) : null}
                     </Card.Footer>
                   </Card>
                 </button>

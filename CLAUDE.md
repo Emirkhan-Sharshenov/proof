@@ -11,7 +11,7 @@ Folioseen: SaaS for freelancers — per-client tracked links to portfolio/propos
 ## Stack
 Vite multi-page build: `index.html` (landing, plain HTML + `public/waitlist.js`) and `app/index.html` (React 19 + HeroUI v3 + Tailwind v4, react-router). Supabase (auth, Postgres + RLS) called directly from the browser with the publishable key (`src/lib/supabase.ts`). Cloudflare Worker `app` (`wrangler.jsonc`): static assets from `dist/` with SPA rewrites in `public/_redirects`; `worker/index.ts` runs only for `/api/*` (Telegram webhook, visit alerts) and uses secrets `TELEGRAM_BOT_TOKEN`, `SUPABASE_SECRET_KEY` set in the Cloudflare dashboard.
 
-Routes: `/` landing · `/app` dashboard (links) · `/app/case-studies` · `/app/links/:id` · `/app/settings` (Telegram) · `/v/:slug` public client page (tracked) · `/api/telegram` (bot webhook) · `/api/visit-alert` · `/api/telegram/setup` (registers the webhook; open once after deploy or address change) · `/api/status` (diagnostics: webhook errors, Supabase key check; no secrets shown).
+Routes: `/` landing · `/app` dashboard (links) · `/app/case-studies` · `/app/links/:id` · `/app/settings` (Telegram) · `/v/:slug` public client page (tracked) · `/t/:token` client testimonial form · `/api/telegram` (bot webhook) · `/api/visit-alert` · `/api/telegram/setup` (registers the webhook; open once after deploy or address change) · `/api/status` (diagnostics: webhook errors, Supabase key check; no secrets shown).
 
 Local `wrangler dev`: kill old `wrangler`/`workerd` processes first, and use a copy of the config without `build` (otherwise it rebuilds `dist/` in a loop and serves 404s).
 
@@ -24,7 +24,7 @@ Local `wrangler dev`: kill old `wrangler`/`workerd` processes first, and use a c
 ## Next tasks
 1. Telegram: open alert + reading summary (cron every 5 min, `supabase/summary.sql`, visit is finished after 10 min idle) — done. Next: optional per-user alert settings.
 2. Auth: Google and GitHub sign-in live (buttons appear automatically when a provider is enabled in Supabase, read from /auth/v1/settings). Google OAuth app is published; Supabase Site URL `https://app.folioseen.workers.dev`, redirect allow-list `https://app.folioseen.workers.dev/**`, `http://localhost:5173/**`. Legal pages: `public/privacy.html`, `public/terms.html` (served at /privacy, /terms; required by Google Branding). Email confirm is ON but Supabase default SMTP only mails project members → email signups only work for Emir until custom SMTP; real email (confirm, password reset) needs a domain (folioseen.com) + Resend/Brevo.
-3. Images: Pro-only (free 0 / pro 20 per case study; `supabase/images.sql`, `src/lib/plan.ts`, `src/lib/images.ts`, `ImageManager.tsx`), compressed to WebP ≤1600px in the browser, public bucket `case-images` with random paths. Plan is set by hand in SQL until payments. Next: client-verified testimonials, export.
+3. Images: Pro-only (free 0 / pro 20 per case study; `supabase/images.sql`, `src/lib/plan.ts`, `src/lib/images.ts`, `ImageManager.tsx`), compressed to WebP ≤1600px in the browser, public bucket `case-images` with random paths. Plan is set by hand in SQL until payments. Testimonials: Pro-only, `supabase/testimonials.sql` (column privileges: owner can only insert case_study_id/client_name and update is_visible; client submits via `submit_testimonial` on /t/<token>), `TestimonialManager.tsx`, `pages/Testimonial.tsx`, Telegram alert `/api/testimonial-alert`. Next: export.
 4. Buy folioseen.com (Cloudflare Registrar, ~$11/yr) when budget allows.
 
 ## Conventions

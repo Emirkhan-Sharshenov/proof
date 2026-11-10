@@ -12,6 +12,7 @@ import CaseStudies from "./pages/CaseStudies";
 import CaseStudyEdit from "./pages/CaseStudyEdit";
 import Viewer from "./pages/Viewer";
 import Settings from "./pages/Settings";
+import Testimonial from "./pages/Testimonial";
 import NotFound from "./pages/NotFound";
 
 createRoot(document.getElementById("root")!).render(
@@ -20,6 +21,7 @@ createRoot(document.getElementById("root")!).render(
       <BrowserRouter>
         <Routes>
           <Route path="/v/:slug" element={<Viewer />} />
+          <Route path="/t/:token" element={<Testimonial />} />
           <Route path="/app/login" element={<Login />} />
           <Route path="/app" element={<Layout />}>
             <Route index element={<Links />} />

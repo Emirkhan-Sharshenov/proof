@@ -103,6 +103,29 @@ async function handleVisitAlert(request: Request, env: Env, ctx: Ctx, origin: st
   return json({ ok: true });
 }
 
+async function handleTestimonialAlert(request: Request, env: Env, ctx: Ctx, origin: string): Promise<Response> {
+  const { token } = (await request.json().catch(() => ({}))) as { token?: string };
+  if (!token || !/^[a-f0-9]{32}$/.test(token)) return json({ ok: false }, 400);
+
+  ctx.waitUntil(
+    (async () => {
+      const rows = await rpc<
+        { chat_id: number; case_study_id: string; case_study_title: string; author_name: string; body: string }[]
+      >(env, "claim_testimonial_alert", { p_token: token });
+      for (const r of rows) {
+        const quote = r.body.length > 300 ? `${r.body.slice(0, 300)}…` : r.body;
+        await telegram(env, "sendMessage", {
+          chat_id: r.chat_id,
+          parse_mode: "HTML",
+          text: `⭐ <b>${escapeHtml(r.author_name)}</b> left a testimonial on “${escapeHtml(r.case_study_title)}”:\n\n<i>${escapeHtml(quote)}</i>\n\n<a href="${origin}/app/case-studies/${r.case_study_id}">Show or hide it</a>`,
+          link_preview_options: { is_disabled: true },
+        });
+      }
+    })().catch((err) => console.error(err)),
+  );
+  return json({ ok: true });
+}
+
 // Open once after deploy (or after changing the token): points the bot's webhook at this Worker.
 async function handleSetup(env: Env, origin: string): Promise<Response> {
   const result = await telegram(env, "setWebhook", {
@@ -206,6 +229,8 @@ export default {
       if (url.pathname === "/api/telegram" && request.method === "POST") return await handleWebhook(request, env);
       if (url.pathname === "/api/visit-alert" && request.method === "POST")
         return await handleVisitAlert(request, env, ctx, url.origin);
+      if (url.pathname === "/api/testimonial-alert" && request.method === "POST")
+        return await handleTestimonialAlert(request, env, ctx, url.origin);
       if (url.pathname === "/api/telegram/setup" && request.method === "GET") return await handleSetup(env, url.origin);
       if (url.pathname === "/api/status" && request.method === "GET") return await handleStatus(env, rawEnv.SUPABASE_SECRET_KEY, url.origin);
     } catch (err) {

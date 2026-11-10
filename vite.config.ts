@@ -9,7 +9,7 @@ const appFallback = (): Plugin => ({
   configureServer(server) {
     server.middlewares.use((req, _res, next) => {
       const path = req.url?.split("?")[0] ?? "";
-      if ((path === "/app" || path.startsWith("/app/") || path.startsWith("/v/")) && !path.includes(".")) {
+      if ((path === "/app" || path.startsWith("/app/") || path.startsWith("/v/") || path.startsWith("/t/")) && !path.includes(".")) {
         req.url = "/app/index.html";
       }
       next();
