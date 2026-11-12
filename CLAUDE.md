@@ -16,7 +16,7 @@ Routes: `/` landing · `/app` dashboard (links) · `/app/case-studies` · `/app/
 Local `wrangler dev`: kill old `wrangler`/`workerd` processes first, and use a copy of the config without `build` (otherwise it rebuilds `dist/` in a loop and serves 404s).
 
 ## Current state
-- Landing + waitlist live, saving to Supabase (project `gexatrweunrrnwnhmarf`). `supabase/schema.sql` applied.
+- Landing: main CTA "Start free" → /app/login; the waitlist form is now the Pro list ("Notify me about Pro"), saving to Supabase (project `gexatrweunrrnwnhmarf`, `supabase/schema.sql`). Landing copy must match what the app really does (no GitHub/domain verification, no email alerts, no custom domain yet).
 - MVP v1 in `src/`: email+password auth, case studies CRUD (with NDA flag), per-client links, public viewer with per-case-study reading time. DB: `supabase/app.sql` (tables + RLS + security-definer RPCs `get_shared_link`, `start_visit`, `track_view`; anon has no direct table access).
 - Telegram alerts: `supabase/telegram.sql` (profiles with chat id, one-time connect codes, `claim_visit_alert` — one alert per visit, server-only RPCs) + Worker + Settings page. Bot username goes in `TELEGRAM_BOT` in `src/pages/Settings.tsx`.
 - Live: https://app.folioseen.workers.dev/ (auto-deploys on push to `main`; `wrangler.jsonc` runs `npm run build` itself).
