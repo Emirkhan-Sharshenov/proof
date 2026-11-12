@@ -5,7 +5,7 @@ Folioseen: SaaS for freelancers — per-client tracked links to portfolio/propos
 
 ## Constraints
 - Zero budget: only free tiers that allow commercial use (Cloudflare Pages/Workers, Supabase free). No Vercel Hobby. No paid AI at runtime.
-- Payments later via Lemon Squeezy or Paddle.
+- Payments: Dodo Payments (merchant of record; Kyrgyzstan is an eligible seller country, Lemon Squeezy has no KG payouts). No free Pro / free trials — Emir's call: paid from day one. Pro $7/mo or $49/yr. `supabase/billing.sql` (`apply_subscription`, service-only), `worker/billing.ts` (`/api/billing/checkout`, `/api/billing/portal`, `/api/dodo/webhook` with Standard Webhooks signature check; on every event the Worker re-fetches the subscription from Dodo), `BillingCard.tsx` in Settings, `public/refund.html` (14-day refund on first payment). Pro = status active or past_due.
 - No invented stats or testimonials on the site; example data must be labelled "example".
 
 ## Stack

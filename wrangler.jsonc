@@ -1,7 +1,8 @@
 // Cloudflare Worker + static assets. `wrangler deploy` runs the build itself,
 // so no build command is needed in the Cloudflare dashboard.
 // The Worker (worker/index.ts) only runs for /api/*; everything else is served straight from dist/.
-// Secrets TELEGRAM_BOT_TOKEN and SUPABASE_SECRET_KEY are set in the Cloudflare dashboard, not here.
+// Secrets (TELEGRAM_BOT_TOKEN, SUPABASE_SECRET_KEY, DODO_API_KEY, DODO_WEBHOOK_SECRET) are set in the
+// Cloudflare dashboard, never here. Product ids and the Dodo mode are public, so they live below.
 {
   "name": "app",
   "main": "worker/index.ts",
@@ -14,5 +15,11 @@
   },
   // Every 5 minutes: Telegram reading summaries for finished visits (also keeps Supabase free tier from pausing).
   "triggers": { "crons": ["*/5 * * * *"] },
+  // Dodo Payments: "test" uses test.dodopayments.com and dodo_test_ keys; switch to "live" with live keys and ids.
+  "vars": {
+    "DODO_MODE": "test",
+    "DODO_PRODUCT_MONTHLY": "",
+    "DODO_PRODUCT_YEARLY": ""
+  },
   "keep_vars": true
 }

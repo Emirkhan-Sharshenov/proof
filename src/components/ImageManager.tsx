@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router";
 import { Button, Card, Chip, Spinner } from "@heroui/react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
@@ -75,7 +76,10 @@ export default function ImageManager({ caseStudyId }: { caseStudyId?: string }) 
           <Spinner size="sm" />
         ) : limit === 0 ? (
           <p className="text-sm text-muted">
-            Images are part of Folioseen Pro. Pro isn’t on sale yet — early users will get it first.
+            Images are part of Folioseen Pro.{" "}
+            <Link className="font-medium text-accent underline" to="/app/settings#billing">
+              Upgrade to Pro
+            </Link>
           </p>
         ) : (
           <>

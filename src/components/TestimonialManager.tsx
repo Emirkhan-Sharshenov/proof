@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { Link } from "react-router";
 import { Button, Card, Chip, Input, Label, Spinner, TextField } from "@heroui/react";
 import { supabase } from "../lib/supabase";
 import { usePlan } from "../lib/plan";
@@ -101,7 +102,10 @@ export default function TestimonialManager({ caseStudyId }: { caseStudyId?: stri
           <Spinner size="sm" />
         ) : plan !== "pro" ? (
           <p className="text-sm text-muted">
-            Client-verified testimonials are part of Folioseen Pro. Pro isn’t on sale yet — early users will get it first.
+            Client-verified testimonials are part of Folioseen Pro.{" "}
+            <Link className="font-medium text-accent underline" to="/app/settings#billing">
+              Upgrade to Pro
+            </Link>
           </p>
         ) : (
           <>

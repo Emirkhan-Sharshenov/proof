@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Card, Chip, Spinner } from "@heroui/react";
 import PageHeader from "../components/PageHeader";
+import BillingCard from "../components/BillingCard";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 
@@ -111,6 +112,7 @@ export default function Settings() {
   return (
     <>
       <PageHeader title="Settings" />
+      <BillingCard />
       <Card className="max-w-2xl">
         <Card.Header>
           <Card.Title className="flex items-center gap-2">

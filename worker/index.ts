@@ -3,7 +3,9 @@
 //   TELEGRAM_BOT_TOKEN   — from @BotFather
 //   SUPABASE_SECRET_KEY  — Supabase → Project Settings → API Keys → secret key
 
-interface Env {
+import * as billing from "./billing";
+
+interface Env extends billing.BillingEnv {
   ASSETS: { fetch(request: Request): Promise<Response> };
   TELEGRAM_BOT_TOKEN?: string;
   SUPABASE_SECRET_KEY?: string;
@@ -208,6 +210,8 @@ const cleanEnv = (rawEnv: Env): Env => ({
   ...rawEnv,
   TELEGRAM_BOT_TOKEN: cleanSecret(rawEnv.TELEGRAM_BOT_TOKEN),
   SUPABASE_SECRET_KEY: cleanSecret(rawEnv.SUPABASE_SECRET_KEY),
+  DODO_API_KEY: cleanSecret(rawEnv.DODO_API_KEY),
+  DODO_WEBHOOK_SECRET: cleanSecret(rawEnv.DODO_WEBHOOK_SECRET),
 });
 
 export default {
@@ -221,6 +225,20 @@ export default {
     const url = new URL(request.url);
     if (!url.pathname.startsWith("/api/")) return rawEnv.ASSETS.fetch(request);
     const env = cleanEnv(rawEnv);
+
+    // Payments don't depend on the Telegram bot being configured.
+    if (url.pathname.startsWith("/api/billing/") || url.pathname === "/api/dodo/webhook") {
+      try {
+        if (request.method !== "POST") return json({ ok: false, error: "method not allowed" }, 405);
+        if (url.pathname === "/api/billing/checkout") return await billing.handleCheckout(request, env, url.origin);
+        if (url.pathname === "/api/billing/portal") return await billing.handlePortal(request, env, url.origin);
+        if (url.pathname === "/api/dodo/webhook") return await billing.handleWebhook(request, env);
+      } catch (err) {
+        console.error(err);
+        return json({ ok: false, error: "Something went wrong. Please try again." }, 500);
+      }
+      return json({ ok: false, error: "not found" }, 404);
+    }
 
     if (!env.TELEGRAM_BOT_TOKEN || !env.SUPABASE_SECRET_KEY) {
       return json({ ok: false, error: "TELEGRAM_BOT_TOKEN or SUPABASE_SECRET_KEY is not set" }, 503);
