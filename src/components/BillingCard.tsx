@@ -73,7 +73,7 @@ export default function BillingCard() {
   }
 
   const isPro = billing?.plan === "pro";
-  const hasSubscription = Boolean(billing?.subscription_status);
+  const hasSubscription = billing?.subscription_status === "active";
   const periodEnd = billing?.current_period_end
     ? new Date(billing.current_period_end).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })
     : null;
@@ -88,22 +88,15 @@ export default function BillingCard() {
               {isPro ? "Pro" : "Free"}
             </Chip>
           ) : null}
-          {billing?.subscription_status === "past_due" ? (
-            <Chip size="sm" color="warning">
-              Payment failed
-            </Chip>
-          ) : null}
         </Card.Title>
         <Card.Description>
           {isPro
-            ? hasSubscription
-              ? billing?.cancel_at_period_end && periodEnd
-                ? `Your subscription is cancelled. Pro stays active until ${periodEnd}.`
-                : periodEnd
-                  ? `Renews on ${periodEnd}.`
-                  : "Your Pro subscription is active."
+            ? hasSubscription && periodEnd
+              ? `Paid through ${periodEnd}. Renews automatically unless you cancel.`
               : "Pro is active on your account."
-            : "Pro adds what makes a portfolio convincing:"}
+            : billing?.subscription_status === "expired" || billing?.subscription_status === "cancelled"
+              ? "Your Pro subscription has ended. Upgrade again to bring back images and testimonials."
+              : "Pro adds what makes a portfolio convincing:"}
         </Card.Description>
       </Card.Header>
       <Card.Content className="flex flex-col gap-3">
@@ -121,9 +114,6 @@ export default function BillingCard() {
           </p>
         ) : null}
         {params.get("billing") === "cancelled" ? <p className="text-sm text-muted">Checkout cancelled. No charge was made.</p> : null}
-        {billing?.subscription_status === "past_due" ? (
-          <p className="text-sm text-warning">Your last payment didn’t go through. Update your card to keep Pro.</p>
-        ) : null}
         {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
       </Card.Content>
       <Card.Footer className="flex flex-wrap gap-2">
@@ -150,7 +140,7 @@ export default function BillingCard() {
       </Card.Footer>
       {billing && !isPro ? (
         <p className="px-4 pb-4 text-xs text-muted">
-          Payments are processed by Dodo Payments, our reseller and merchant of record. Cancel anytime.{" "}
+          Payments are processed by Freemius, our reseller and merchant of record. Cancel anytime.{" "}
           <a className="underline" href="/refund">
             Refund policy
           </a>

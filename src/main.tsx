@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Route, Routes } from "react-router";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import "./index.css";
 import { AuthProvider } from "./lib/auth";
 import Layout from "./components/Layout";
@@ -31,6 +31,8 @@ createRoot(document.getElementById("root")!).render(
             <Route path="case-studies/new" element={<CaseStudyEdit />} />
             <Route path="case-studies/:id" element={<CaseStudyEdit />} />
             <Route path="settings" element={<Settings />} />
+            {/* Freemius redirects here after a purchase (set in the Freemius dashboard) and appends its own params. */}
+            <Route path="billing/success" element={<Navigate to="/app/settings?billing=success" replace />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

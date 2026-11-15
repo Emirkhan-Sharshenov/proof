@@ -1,36 +1,40 @@
-// Pro subscriptions via Dodo Payments (merchant of record).
+// Pro subscriptions via Freemius (merchant of record), SaaS product.
 //
 // Secrets (Cloudflare dashboard → Worker → Settings → Variables and Secrets):
-//   DODO_API_KEY         — Dodo → Developer → API Keys (dodo_test_… in test mode, dodo_live_… in live mode)
-//   DODO_WEBHOOK_SECRET  — Dodo → Developer → Webhooks → signing secret (whsec_…)
+//   FREEMIUS_SECRET_KEY  — Freemius → product Settings → API & Keys → Secret Key (sk_…). Signs webhooks.
+//   FREEMIUS_API_TOKEN   — Freemius → product Settings → API & Keys → API Bearer Authorization Token
 // Plain vars (wrangler.jsonc → vars):
-//   DODO_MODE            — "test" or "live"
-//   DODO_PRODUCT_MONTHLY, DODO_PRODUCT_YEARLY — product ids (pdt_…)
+//   FREEMIUS_PRODUCT_ID, FREEMIUS_PLAN_ID, FREEMIUS_PUBLIC_KEY (pk_…), FREEMIUS_SANDBOX ("true" | "false")
+
+import { md5 } from "./md5";
 
 export interface BillingEnv {
   SUPABASE_SECRET_KEY?: string;
-  DODO_API_KEY?: string;
-  DODO_WEBHOOK_SECRET?: string;
-  DODO_MODE?: string;
-  DODO_PRODUCT_MONTHLY?: string;
-  DODO_PRODUCT_YEARLY?: string;
+  FREEMIUS_SECRET_KEY?: string;
+  FREEMIUS_API_TOKEN?: string;
+  FREEMIUS_PRODUCT_ID?: string;
+  FREEMIUS_PLAN_ID?: string;
+  FREEMIUS_PUBLIC_KEY?: string;
+  FREEMIUS_SANDBOX?: string;
 }
 
 const SUPABASE_URL = "https://gexatrweunrrnwnhmarf.supabase.co";
+const FS_API = "https://api.freemius.com/v1";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
-const dodoBase = (env: BillingEnv) =>
-  env.DODO_MODE === "live" ? "https://live.dodopayments.com" : "https://test.dodopayments.com";
-
-async function dodo<T>(env: BillingEnv, method: string, path: string, body?: unknown): Promise<T> {
-  const res = await fetch(`${dodoBase(env)}${path}`, {
+async function freemius<T>(env: BillingEnv, method: string, path: string, body?: unknown): Promise<T> {
+  const res = await fetch(`${FS_API}/products/${env.FREEMIUS_PRODUCT_ID}${path}`, {
     method,
-    headers: { Authorization: `Bearer ${env.DODO_API_KEY}`, "Content-Type": "application/json" },
+    headers: {
+      Authorization: `Bearer ${env.FREEMIUS_API_TOKEN}`,
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`Dodo ${method} ${path}: HTTP ${res.status} ${(await res.text()).slice(0, 300)}`);
+  if (!res.ok) throw new Error(`Freemius ${method} ${path}: HTTP ${res.status} ${(await res.text()).slice(0, 300)}`);
   return res.json() as Promise<T>;
 }
 
@@ -52,20 +56,30 @@ async function currentUser(request: Request, env: BillingEnv): Promise<{ id: str
   return user.id && user.email ? { id: user.id, email: user.email } : null;
 }
 
-type Profile = { dodo_customer_id: string | null; subscription_status: string | null; plan: string };
+type Profile = { fs_license_id: string | null; subscription_status: string | null; current_period_end: string | null };
 
 async function profile(env: BillingEnv, userId: string): Promise<Profile | null> {
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${userId}&select=dodo_customer_id,subscription_status,plan`,
+    `${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${userId}&select=fs_license_id,subscription_status,current_period_end`,
     { headers: supabaseHeaders(env) },
   );
   if (!res.ok) throw new Error(`profiles: HTTP ${res.status}`);
-  const rows = (await res.json()) as Profile[];
-  return rows[0] ?? null;
+  return ((await res.json()) as Profile[])[0] ?? null;
 }
 
 const missingConfig = (env: BillingEnv) =>
-  !env.SUPABASE_SECRET_KEY || !env.DODO_API_KEY || !env.DODO_PRODUCT_MONTHLY || !env.DODO_PRODUCT_YEARLY;
+  !env.SUPABASE_SECRET_KEY ||
+  !env.FREEMIUS_SECRET_KEY ||
+  !env.FREEMIUS_API_TOKEN ||
+  !env.FREEMIUS_PRODUCT_ID ||
+  !env.FREEMIUS_PLAN_ID ||
+  !env.FREEMIUS_PUBLIC_KEY;
+
+// Sandbox token: md5(ctx + product_id + secret_key + public_key + "checkout"), per Freemius docs.
+export function sandboxParams(env: BillingEnv, ctx = String(Math.floor(Date.now() / 1000))) {
+  const token = md5(`${ctx}${env.FREEMIUS_PRODUCT_ID}${env.FREEMIUS_SECRET_KEY}${env.FREEMIUS_PUBLIC_KEY}checkout`);
+  return { token, ctx };
+}
 
 // POST /api/billing/checkout  { interval: "month" | "year" }  →  { url }
 export async function handleCheckout(request: Request, env: BillingEnv, origin: string): Promise<Response> {
@@ -74,53 +88,39 @@ export async function handleCheckout(request: Request, env: BillingEnv, origin: 
   if (!user) return json({ ok: false, error: "Please sign in again." }, 401);
 
   const current = await profile(env, user.id);
-  if (current?.subscription_status && ["active", "past_due"].includes(current.subscription_status)) {
-    return json({ ok: false, error: "You already have an active subscription. Use Manage subscription." }, 409);
+  if (current?.subscription_status === "active") {
+    return json({ ok: false, error: "You already have Pro. Use Manage subscription." }, 409);
   }
 
   const { interval } = (await request.json().catch(() => ({}))) as { interval?: string };
-  const productId = interval === "year" ? env.DODO_PRODUCT_YEARLY! : env.DODO_PRODUCT_MONTHLY!;
-
-  const session = await dodo<{ checkout_url: string | null }>(env, "POST", "/checkouts", {
-    product_cart: [{ product_id: productId, quantity: 1 }],
-    customer: { email: user.email },
-    metadata: { user_id: user.id },
-    return_url: `${origin}/app/settings?billing=success`,
+  const params = new URLSearchParams({
+    user_email: user.email,
+    readonly_user: "true",
+    billing_cycle: interval === "year" ? "annual" : "monthly",
     cancel_url: `${origin}/app/settings?billing=cancelled`,
   });
-  if (!session.checkout_url) throw new Error("Dodo returned no checkout_url");
-  return json({ ok: true, url: session.checkout_url });
+  if (env.FREEMIUS_SANDBOX === "true") {
+    const sandbox = sandboxParams(env);
+    params.set("sandbox", sandbox.token);
+    params.set("s_ctx_ts", sandbox.ctx);
+  }
+  const url = `https://checkout.freemius.com/product/${env.FREEMIUS_PRODUCT_ID}/plan/${env.FREEMIUS_PLAN_ID}/?${params}`;
+  return json({ ok: true, url });
 }
 
-// POST /api/billing/portal  →  { url }   (manage card, cancel, invoices)
-export async function handlePortal(request: Request, env: BillingEnv, origin: string): Promise<Response> {
+// POST /api/billing/portal  →  { url }   (Freemius customer portal: card, cancel, invoices)
+export async function handlePortal(request: Request, env: BillingEnv): Promise<Response> {
   if (missingConfig(env)) return json({ ok: false, error: "Payments are not configured yet." }, 503);
   const user = await currentUser(request, env);
   if (!user) return json({ ok: false, error: "Please sign in again." }, 401);
   const current = await profile(env, user.id);
-  if (!current?.dodo_customer_id) return json({ ok: false, error: "No subscription found for this account." }, 404);
+  if (!current?.fs_license_id) return json({ ok: false, error: "No subscription found for this account." }, 404);
 
-  const returnUrl = encodeURIComponent(`${origin}/app/settings`);
-  const portal = await dodo<{ link: string }>(
-    env,
-    "POST",
-    `/customers/${encodeURIComponent(current.dodo_customer_id)}/customer-portal/session?return_url=${returnUrl}`,
-  );
+  const portal = await freemius<{ link: string }>(env, "POST", "/portal/login.json", { email: user.email });
   return json({ ok: true, url: portal.link });
 }
 
-// ---------- Webhook (Standard Webhooks signature) ----------
-
-function base64ToBytes(b64: string): Uint8Array<ArrayBuffer> {
-  const bin = atob(b64);
-  const bytes = new Uint8Array(new ArrayBuffer(bin.length));
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return bytes;
-}
-
-function bytesToBase64(bytes: ArrayBuffer): string {
-  return btoa(String.fromCharCode(...new Uint8Array(bytes)));
-}
+// ---------- Webhook: x-signature = hex HMAC-SHA256(raw body, product secret key) ----------
 
 function constantTimeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -129,74 +129,92 @@ function constantTimeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-export async function verifyWebhook(secret: string, headers: Headers, body: string): Promise<boolean> {
-  const id = headers.get("webhook-id");
-  const timestamp = headers.get("webhook-timestamp");
-  const signatures = headers.get("webhook-signature");
-  if (!id || !timestamp || !signatures) return false;
-  if (Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) return false;
-
+export async function verifyWebhook(secret: string, signature: string | null, body: string): Promise<boolean> {
+  if (!signature) return false;
   const key = await crypto.subtle.importKey(
     "raw",
-    base64ToBytes(secret.replace(/^whsec_/, "")),
+    new TextEncoder().encode(secret),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"],
   );
-  const expected = bytesToBase64(
-    await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${id}.${timestamp}.${body}`)),
-  );
-  return signatures
-    .split(" ")
-    .map((s) => s.split(",")[1] ?? "")
-    .some((sig) => constantTimeEqual(sig, expected));
+  const mac = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body));
+  const hex = [...new Uint8Array(mac)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return constantTimeEqual(hex, signature.trim().toLowerCase());
 }
 
-type DodoSubscription = {
-  subscription_id: string;
-  status: string;
-  next_billing_date?: string | null;
-  cancel_at_next_billing_date?: boolean;
-  metadata?: Record<string, unknown>;
-  customer?: { customer_id?: string; email?: string };
-};
+type License = { id: string; user_id: string | null; plan_id: string; expiration: string | null; is_cancelled: boolean };
 
-// POST /api/dodo/webhook
+// Freemius returns "YYYY-MM-DD HH:MM:SS" in UTC.
+const toIso = (d: string | null) => (d ? new Date(d.replace(" ", "T") + (d.endsWith("Z") ? "" : "Z")).toISOString() : null);
+
+async function applyLicense(env: BillingEnv, args: Record<string, unknown>) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/apply_license`, {
+    method: "POST",
+    headers: supabaseHeaders(env),
+    body: JSON.stringify(args),
+  });
+  if (!res.ok) throw new Error(`apply_license: HTTP ${res.status} ${await res.text()}`);
+  return res.json();
+}
+
+const LICENSE_EVENTS = [
+  "license.created",
+  "license.extended",
+  "license.shortened",
+  "license.updated",
+  "license.cancelled",
+  "license.expired",
+  "license.plan.changed",
+];
+
+// POST /api/freemius/webhook
 export async function handleWebhook(request: Request, env: BillingEnv): Promise<Response> {
-  if (!env.DODO_WEBHOOK_SECRET || !env.DODO_API_KEY || !env.SUPABASE_SECRET_KEY) {
-    return json({ ok: false, error: "not configured" }, 503);
-  }
+  if (missingConfig(env)) return json({ ok: false, error: "not configured" }, 503);
   const body = await request.text();
-  if (!(await verifyWebhook(env.DODO_WEBHOOK_SECRET, request.headers, body))) {
+  if (!(await verifyWebhook(env.FREEMIUS_SECRET_KEY!, request.headers.get("x-signature"), body))) {
     return new Response("invalid signature", { status: 401 });
   }
 
-  const event = JSON.parse(body) as { type?: string; data?: { payload_type?: string; subscription_id?: string } };
-  const subscriptionId = event.data?.subscription_id;
-  if (!subscriptionId || !(event.type?.startsWith("subscription.") || event.data?.payload_type === "Subscription")) {
-    return json({ ok: true, ignored: event.type ?? null });
+  const event = JSON.parse(body) as {
+    type?: string;
+    data?: { license_id?: string | number };
+    objects?: { license?: { id?: string | number }; user?: { id?: string | number; email?: string } };
+  };
+
+  if (event.type === "license.deleted") {
+    const licenseId = String(event.data?.license_id ?? event.objects?.license?.id ?? "");
+    if (!licenseId) return json({ ok: true, ignored: "no license id" });
+    const matched = await applyLicense(env, {
+      p_email: event.objects?.user?.email ?? null,
+      p_fs_user_id: event.objects?.user?.id ? String(event.objects.user.id) : null,
+      p_license_id: licenseId,
+      p_expiration: null,
+      p_cancelled: true,
+      p_deleted: true,
+    });
+    return json({ ok: true, type: event.type, matched: Boolean(matched) });
   }
 
-  // Ask Dodo for the current state instead of trusting event order.
-  const sub = await dodo<DodoSubscription>(env, "GET", `/subscriptions/${encodeURIComponent(subscriptionId)}`);
-  const payloadMeta = (event.data as { metadata?: Record<string, unknown> }).metadata;
-  const userId = String(sub.metadata?.user_id ?? payloadMeta?.user_id ?? "");
+  if (!event.type || !LICENSE_EVENTS.includes(event.type)) return json({ ok: true, ignored: event.type ?? null });
+  const licenseId = event.objects?.license?.id;
+  if (!licenseId) return json({ ok: true, ignored: "no license id" });
 
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/apply_subscription`, {
-    method: "POST",
-    headers: supabaseHeaders(env),
-    body: JSON.stringify({
-      p_user_id: userId,
-      p_email: sub.customer?.email ?? null,
-      p_customer_id: sub.customer?.customer_id ?? null,
-      p_subscription_id: sub.subscription_id,
-      p_status: sub.status,
-      p_next_billing: sub.next_billing_date ?? null,
-      p_cancel_at_period_end: sub.cancel_at_next_billing_date ?? false,
-    }),
+  // Re-read the license (source of truth) and its owner from the Freemius API.
+  const license = await freemius<License>(env, "GET", `/licenses/${licenseId}.json`);
+  if (String(license.plan_id) !== String(env.FREEMIUS_PLAN_ID)) return json({ ok: true, ignored: "other plan" });
+  const fsUser = license.user_id
+    ? await freemius<{ id: string; email: string }>(env, "GET", `/users/${license.user_id}.json`)
+    : null;
+
+  const matched = await applyLicense(env, {
+    p_email: fsUser?.email ?? event.objects?.user?.email ?? null,
+    p_fs_user_id: license.user_id ? String(license.user_id) : null,
+    p_license_id: String(license.id),
+    p_expiration: toIso(license.expiration),
+    p_cancelled: Boolean(license.is_cancelled),
+    p_deleted: false,
   });
-  if (!res.ok) throw new Error(`apply_subscription: HTTP ${res.status} ${await res.text()}`);
-  const matched = await res.json();
-  if (!matched) console.error(`Dodo subscription ${sub.subscription_id} matched no account`);
-  return json({ ok: true, type: event.type, status: sub.status, matched: Boolean(matched) });
+  if (!matched) console.error(`Freemius license ${license.id} matched no account`);
+  return json({ ok: true, type: event.type, matched: Boolean(matched) });
 }

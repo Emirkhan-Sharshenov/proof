@@ -2,7 +2,7 @@ import { supabase } from "./supabase";
 
 export const PRICES = { month: "$7 / month", year: "$49 / year" } as const;
 
-// Calls the Worker (same origin) with the user's access token and sends the browser to Dodo.
+// Calls the Worker (same origin) with the user's access token and sends the browser to Freemius.
 async function go(path: string, body?: unknown): Promise<void> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;

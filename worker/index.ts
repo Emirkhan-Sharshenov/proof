@@ -210,8 +210,8 @@ const cleanEnv = (rawEnv: Env): Env => ({
   ...rawEnv,
   TELEGRAM_BOT_TOKEN: cleanSecret(rawEnv.TELEGRAM_BOT_TOKEN),
   SUPABASE_SECRET_KEY: cleanSecret(rawEnv.SUPABASE_SECRET_KEY),
-  DODO_API_KEY: cleanSecret(rawEnv.DODO_API_KEY),
-  DODO_WEBHOOK_SECRET: cleanSecret(rawEnv.DODO_WEBHOOK_SECRET),
+  FREEMIUS_SECRET_KEY: cleanSecret(rawEnv.FREEMIUS_SECRET_KEY),
+  FREEMIUS_API_TOKEN: cleanSecret(rawEnv.FREEMIUS_API_TOKEN),
 });
 
 export default {
@@ -227,12 +227,12 @@ export default {
     const env = cleanEnv(rawEnv);
 
     // Payments don't depend on the Telegram bot being configured.
-    if (url.pathname.startsWith("/api/billing/") || url.pathname === "/api/dodo/webhook") {
+    if (url.pathname.startsWith("/api/billing/") || url.pathname === "/api/freemius/webhook") {
       try {
         if (request.method !== "POST") return json({ ok: false, error: "method not allowed" }, 405);
         if (url.pathname === "/api/billing/checkout") return await billing.handleCheckout(request, env, url.origin);
-        if (url.pathname === "/api/billing/portal") return await billing.handlePortal(request, env, url.origin);
-        if (url.pathname === "/api/dodo/webhook") return await billing.handleWebhook(request, env);
+        if (url.pathname === "/api/billing/portal") return await billing.handlePortal(request, env);
+        if (url.pathname === "/api/freemius/webhook") return await billing.handleWebhook(request, env);
       } catch (err) {
         console.error(err);
         return json({ ok: false, error: "Something went wrong. Please try again." }, 500);
