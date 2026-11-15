@@ -17,9 +17,9 @@
   "triggers": { "crons": ["*/5 * * * *"] },
   // Freemius: FREEMIUS_SANDBOX "true" opens the checkout in sandbox (test cards, no real money); set "false" to go live.
   "vars": {
-    "FREEMIUS_PRODUCT_ID": "",
-    "FREEMIUS_PLAN_ID": "",
-    "FREEMIUS_PUBLIC_KEY": "",
+    "FREEMIUS_PRODUCT_ID": "45012",
+    "FREEMIUS_PLAN_ID": "79373",
+    "FREEMIUS_PUBLIC_KEY": "pk_67358a8fd0d9b7905bb2786b85770",
     "FREEMIUS_SANDBOX": "true"
   },
   "keep_vars": true
