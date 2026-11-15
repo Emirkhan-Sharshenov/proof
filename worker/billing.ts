@@ -172,6 +172,15 @@ export async function billingDiagnostics(env: BillingEnv) {
     out.licenses_error = String(err).slice(0, 200);
   }
   try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/profiles?fs_license_id=not.is.null&select=fs_license_id,subscription_status,plan,billing_updated_at`,
+      { headers: supabaseHeaders(env) },
+    );
+    out.linked_accounts = res.ok ? await res.json() : `HTTP ${res.status}`;
+  } catch (err) {
+    out.linked_accounts_error = String(err).slice(0, 200);
+  }
+  try {
     const { events } = await freemius<{ events: Record<string, unknown>[] }>(env, "GET", "/events.json?count=10");
     out.events = events.map((e) => ({ type: e.type, state: e.state, created: e.created }));
   } catch (err) {
