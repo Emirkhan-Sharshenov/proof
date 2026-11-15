@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router";
 import { Button, Card, Chip, Spinner } from "@heroui/react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
-import { openBillingPortal, PRICES, startCheckout } from "../lib/billing";
+import { openBillingPortal, PRICES, startCheckout, syncBilling } from "../lib/billing";
 
 type Billing = {
   plan: "free" | "pro";
@@ -50,6 +50,7 @@ export default function BillingCard() {
     let tries = 0;
     poll.current = window.setInterval(async () => {
       tries += 1;
+      if (tries === 1 || tries % 3 === 0) await syncBilling();
       const next = await load();
       if (next.plan === "pro" || tries > 20) {
         window.clearInterval(poll.current);
@@ -135,6 +136,22 @@ export default function BillingCard() {
         {hasSubscription ? (
           <Button variant="secondary" isPending={busy === "portal"} onPress={() => run("portal", openBillingPortal)}>
             Manage subscription
+          </Button>
+        ) : null}
+        {billing && !isPro ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            isPending={busy === "sync"}
+            isDisabled={Boolean(busy)}
+            onPress={async () => {
+              setBusy("sync");
+              await syncBilling();
+              await load();
+              setBusy(null);
+            }}
+          >
+            Already paid? Refresh status
           </Button>
         ) : null}
       </Card.Footer>

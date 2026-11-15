@@ -120,6 +120,39 @@ export async function handlePortal(request: Request, env: BillingEnv): Promise<R
   return json({ ok: true, url: portal.link });
 }
 
+// POST /api/billing/sync → { plan }
+// Pulls the signed-in user's licenses straight from Freemius (matched by their locked checkout email).
+// Used right after checkout and as a self-heal when a webhook is late or lost.
+export async function handleSync(request: Request, env: BillingEnv): Promise<Response> {
+  if (missingConfig(env)) return json({ ok: false, error: "Payments are not configured yet." }, 503);
+  const user = await currentUser(request, env);
+  if (!user) return json({ ok: false, error: "Please sign in again." }, 401);
+
+  const { users } = await freemius<{ users: { id: string; email: string }[] }>(
+    env,
+    "GET",
+    `/users.json?email=${encodeURIComponent(user.email)}&count=5`,
+  );
+  const fsUser = users.find((u) => u.email.toLowerCase() === user.email.toLowerCase());
+  if (!fsUser) return json({ ok: true, synced: 0 });
+
+  const { licenses } = await freemius<{ licenses: License[] }>(env, "GET", `/users/${fsUser.id}/licenses.json?count=20`);
+  const ours = licenses.filter((l) => String(l.plan_id) === String(env.FREEMIUS_PLAN_ID));
+  // Apply inactive ones first, active last, so the final state reflects an active license if there is one.
+  const isActive = (l: License) => !l.is_cancelled && (!l.expiration || new Date(toIso(l.expiration)!) > new Date());
+  for (const l of [...ours].sort((a, b) => Number(isActive(a)) - Number(isActive(b)))) {
+    await applyLicense(env, {
+      p_email: user.email,
+      p_fs_user_id: String(fsUser.id),
+      p_license_id: String(l.id),
+      p_expiration: toIso(l.expiration),
+      p_cancelled: Boolean(l.is_cancelled),
+      p_deleted: false,
+    });
+  }
+  return json({ ok: true, synced: ours.length, active: ours.some(isActive) });
+}
+
 // Diagnostics for /api/status: does the API token work, which licenses exist, which events Freemius produced.
 // No emails or names are returned.
 export async function billingDiagnostics(env: BillingEnv) {

@@ -17,5 +17,13 @@ async function go(path: string, body?: unknown): Promise<void> {
   window.location.href = result.url;
 }
 
-export const startCheckout = (interval: "month" | "year") => go("/api/billing/checkout", { interval });
+// Asks the server to pull this account's licenses from Freemius (self-heal if a webhook is late).
+export async function syncBilling(): Promise<void> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) return;
+  await fetch("/api/billing/sync", { method: "POST", headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+}
+
+export const startCheckout =(interval: "month" | "year") => go("/api/billing/checkout", { interval });
 export const openBillingPortal = () => go("/api/billing/portal");

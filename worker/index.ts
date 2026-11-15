@@ -233,6 +233,7 @@ export default {
         if (request.method !== "POST") return json({ ok: false, error: "method not allowed" }, 405);
         if (url.pathname === "/api/billing/checkout") return await billing.handleCheckout(request, env, url.origin);
         if (url.pathname === "/api/billing/portal") return await billing.handlePortal(request, env);
+        if (url.pathname === "/api/billing/sync") return await billing.handleSync(request, env);
         if (url.pathname === "/api/freemius/webhook") return await billing.handleWebhook(request, env);
       } catch (err) {
         console.error(err);
