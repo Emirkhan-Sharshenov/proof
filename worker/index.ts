@@ -176,6 +176,7 @@ async function handleStatus(env: Env, rawKey: string | undefined, origin: string
     telegram_error: info.ok ? null : info.description,
     supabase,
     supabase_key: describeKey(rawKey),
+    billing: await billing.billingDiagnostics(env).catch((err) => ({ error: String(err).slice(0, 200) })),
   });
 }
 

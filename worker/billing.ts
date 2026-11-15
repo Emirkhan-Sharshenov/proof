@@ -120,6 +120,33 @@ export async function handlePortal(request: Request, env: BillingEnv): Promise<R
   return json({ ok: true, url: portal.link });
 }
 
+// Diagnostics for /api/status: does the API token work, which licenses exist, which events Freemius produced.
+// No emails or names are returned.
+export async function billingDiagnostics(env: BillingEnv) {
+  if (missingConfig(env)) return { configured: false };
+  const out: Record<string, unknown> = { configured: true, sandbox: env.FREEMIUS_SANDBOX === "true", plan_id: env.FREEMIUS_PLAN_ID };
+  try {
+    const { licenses } = await freemius<{ licenses: Record<string, unknown>[] }>(env, "GET", "/licenses.json?count=5");
+    out.licenses = licenses.map((l) => ({
+      id: l.id,
+      plan_id: l.plan_id,
+      has_user: Boolean(l.user_id),
+      expiration: l.expiration,
+      is_cancelled: l.is_cancelled,
+      environment: l.environment,
+    }));
+  } catch (err) {
+    out.licenses_error = String(err).slice(0, 200);
+  }
+  try {
+    const { events } = await freemius<{ events: Record<string, unknown>[] }>(env, "GET", "/events.json?count=10");
+    out.events = events.map((e) => ({ type: e.type, state: e.state, created: e.created }));
+  } catch (err) {
+    out.events_error = String(err).slice(0, 200);
+  }
+  return out;
+}
+
 // ---------- Webhook: x-signature = hex HMAC-SHA256(raw body, product secret key) ----------
 
 function constantTimeEqual(a: string, b: string): boolean {
