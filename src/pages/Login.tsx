@@ -33,6 +33,9 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
+  const [showEmail, setShowEmail] = useState(false);
+  // With Google/GitHub available, new accounts are created through them and email is sign-in only.
+  const oauthOnly = providers.length > 0;
 
   if (session) return <Navigate to="/app" replace />;
 
@@ -63,26 +66,33 @@ export default function Login() {
       <Card className="w-full max-w-sm">
         <Card.Header>
           <span className="font-display text-2xl font-bold tracking-tight">Folioseen</span>
-          <Card.Title>{mode === "signin" ? "Sign in" : "Create your account"}</Card.Title>
-          <Card.Description>Know who read your portfolio.</Card.Description>
+          <Card.Title>{oauthOnly ? "Sign in or create your account" : mode === "signin" ? "Sign in" : "Create your account"}</Card.Title>
+          <Card.Description>Know who read your portfolio. Free plan, no card needed.</Card.Description>
         </Card.Header>
         <Card.Content>
           {providers.length > 0 ? (
             <>
               <div className="flex flex-col gap-2">
-                {PROVIDERS.filter((p) => providers.includes(p.id)).map((p) => (
-                  <Button key={p.id} variant="secondary" fullWidth onPress={() => oauth(p.id)}>
+                {PROVIDERS.filter((p) => providers.includes(p.id)).map((p, i) => (
+                  <Button key={p.id} variant={i === 0 ? "primary" : "secondary"} fullWidth onPress={() => oauth(p.id)}>
                     {p.label}
                   </Button>
                 ))}
               </div>
-              <div className="my-4 flex items-center gap-3 text-xs text-muted">
-                <Separator className="flex-1" />
-                or with email
-                <Separator className="flex-1" />
-              </div>
+              {!showEmail ? (
+                <Button variant="ghost" size="sm" className="mt-3 w-full" onPress={() => setShowEmail(true)}>
+                  Sign in with email
+                </Button>
+              ) : (
+                <div className="my-4 flex items-center gap-3 text-xs text-muted">
+                  <Separator className="flex-1" />
+                  sign in with email
+                  <Separator className="flex-1" />
+                </div>
+              )}
             </>
           ) : null}
+          {showEmail || providers.length === 0 ? (
           <form className="flex flex-col gap-4" onSubmit={submit}>
             <TextField isRequired name="email" type="email" value={email} onChange={setEmail}>
               <Label>Email</Label>
@@ -102,20 +112,25 @@ export default function Login() {
               {mode === "signin" ? "Sign in" : "Create account"}
             </Button>
           </form>
+          ) : null}
+          {error && !showEmail && providers.length > 0 ? <p role="alert" className="mt-3 text-sm text-danger">{error}</p> : null}
         </Card.Content>
-        <Card.Footer>
-          <Button
-            variant="ghost"
-            size="sm"
-            onPress={() => {
-              setMode(mode === "signin" ? "signup" : "signin");
-              setError("");
-              setInfo("");
-            }}
-          >
-            {mode === "signin" ? "No account? Create one" : "Have an account? Sign in"}
-          </Button>
-        </Card.Footer>
+        {/* Email sign-up needs working confirmation emails (custom SMTP); until then new accounts use Google/GitHub. */}
+        {!oauthOnly ? (
+          <Card.Footer>
+            <Button
+              variant="ghost"
+              size="sm"
+              onPress={() => {
+                setMode(mode === "signin" ? "signup" : "signin");
+                setError("");
+                setInfo("");
+              }}
+            >
+              {mode === "signin" ? "No account? Create one" : "Have an account? Sign in"}
+            </Button>
+          </Card.Footer>
+        ) : null}
         <p className="px-4 pb-4 text-center text-xs text-muted">
           By continuing you agree to the{" "}
           <a className="underline" href="/terms">

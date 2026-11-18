@@ -5,6 +5,8 @@
 //   FREEMIUS_API_TOKEN   — Freemius → product Settings → API & Keys → API Bearer Authorization Token
 // Plain vars (wrangler.jsonc → vars):
 //   FREEMIUS_PRODUCT_ID, FREEMIUS_PLAN_ID, FREEMIUS_PUBLIC_KEY (pk_…), FREEMIUS_SANDBOX ("true" | "false")
+//   FREEMIUS_TEST_EMAILS — comma-separated accounts allowed to open the sandbox checkout. While
+//     FREEMIUS_SANDBOX is "true", everyone else gets "Pro opens soon" instead of a free test-card upgrade.
 
 import { md5 } from "./md5";
 
@@ -16,7 +18,21 @@ export interface BillingEnv {
   FREEMIUS_PLAN_ID?: string;
   FREEMIUS_PUBLIC_KEY?: string;
   FREEMIUS_SANDBOX?: string;
+  FREEMIUS_TEST_EMAILS?: string;
 }
+
+const isSandbox = (env: BillingEnv) => env.FREEMIUS_SANDBOX === "true";
+
+const isTester = (env: BillingEnv, email: string) =>
+  (env.FREEMIUS_TEST_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+    .includes(email.toLowerCase());
+
+// Sandbox licenses (environment 1) must never grant Pro once real payments are live.
+const countsInThisMode = (env: BillingEnv, license: { environment?: number | string | null }) =>
+  isSandbox(env) || Number(license.environment ?? 0) !== 1;
 
 const SUPABASE_URL = "https://gexatrweunrrnwnhmarf.supabase.co";
 const FS_API = "https://api.freemius.com/v1";
@@ -87,6 +103,13 @@ export async function handleCheckout(request: Request, env: BillingEnv, origin: 
   const user = await currentUser(request, env);
   if (!user) return json({ ok: false, error: "Please sign in again." }, 401);
 
+  if (isSandbox(env) && !isTester(env, user.email)) {
+    return json(
+      { ok: false, error: "Pro checkout opens in a few days. Everything you build on Free stays with you." },
+      503,
+    );
+  }
+
   const current = await profile(env, user.id);
   if (current?.subscription_status === "active") {
     return json({ ok: false, error: "You already have Pro. Use Manage subscription." }, 409);
@@ -137,7 +160,7 @@ export async function handleSync(request: Request, env: BillingEnv): Promise<Res
   if (!fsUser) return json({ ok: true, synced: 0 });
 
   const { licenses } = await freemius<{ licenses: License[] }>(env, "GET", `/users/${fsUser.id}/licenses.json?count=20`);
-  const ours = licenses.filter((l) => String(l.plan_id) === String(env.FREEMIUS_PLAN_ID));
+  const ours = licenses.filter((l) => String(l.plan_id) === String(env.FREEMIUS_PLAN_ID) && countsInThisMode(env, l));
   // Apply inactive ones first, active last, so the final state reflects an active license if there is one.
   const isActive = (l: License) => !l.is_cancelled && (!l.expiration || new Date(toIso(l.expiration)!) > new Date());
   for (const l of [...ours].sort((a, b) => Number(isActive(a)) - Number(isActive(b)))) {
@@ -212,7 +235,7 @@ export async function verifyWebhook(secret: string, signature: string | null, bo
   return constantTimeEqual(hex, signature.trim().toLowerCase());
 }
 
-type License = { id: string; user_id: string | null; plan_id: string; expiration: string | null; is_cancelled: boolean };
+type License = { id: string; user_id: string | null; plan_id: string; expiration: string | null; is_cancelled: boolean; environment?: number | null };
 
 // Freemius returns "YYYY-MM-DD HH:MM:SS" in UTC.
 const toIso = (d: string | null) => (d ? new Date(d.replace(" ", "T") + (d.endsWith("Z") ? "" : "Z")).toISOString() : null);
@@ -272,6 +295,7 @@ export async function handleWebhook(request: Request, env: BillingEnv): Promise<
   // Re-read the license (source of truth) and its owner from the Freemius API.
   const license = await freemius<License>(env, "GET", `/licenses/${licenseId}.json`);
   if (String(license.plan_id) !== String(env.FREEMIUS_PLAN_ID)) return json({ ok: true, ignored: "other plan" });
+  if (!countsInThisMode(env, license)) return json({ ok: true, ignored: "sandbox license in live mode" });
   const fsUser = license.user_id
     ? await freemius<{ id: string; email: string }>(env, "GET", `/users/${license.user_id}.json`)
     : null;

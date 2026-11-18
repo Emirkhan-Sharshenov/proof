@@ -20,7 +20,9 @@
     "FREEMIUS_PRODUCT_ID": "45012",
     "FREEMIUS_PLAN_ID": "79373",
     "FREEMIUS_PUBLIC_KEY": "pk_67358a8fd0d9b7905bb2786b85770",
-    "FREEMIUS_SANDBOX": "true"
+    "FREEMIUS_SANDBOX": "true",
+    // While in sandbox, only these accounts may open the (test) checkout.
+    "FREEMIUS_TEST_EMAILS": "sgoo0931@gmail.com"
   },
   "keep_vars": true
 }
